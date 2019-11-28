@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using AuthenticationDemo.Auth;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
@@ -105,10 +106,21 @@ namespace AuthenticationDemo
             // api user claim policy
             services.AddAuthorization(options =>
             {
-                options.AddPolicy("ApiUser", policy =>
-                    policy.RequireClaim(
-                        Constants.Strings.JwtClaimIdentifiers.Rol,
-                        Constants.Strings.JwtClaims.ApiAccess));
+                //options.AddPolicy("CustomPolicy", policy =>
+                //    policy.RequireClaim(
+                //        Constants.Strings.JwtClaimIdentifiers.Rol,
+                //        Constants.Strings.JwtClaims.ApiAccess));
+
+                options.DefaultPolicy =
+                    new AuthorizationPolicyBuilder(JwtBearerDefaults.AuthenticationScheme)
+                        .RequireAuthenticatedUser()
+                        .Build();
+
+                options.AddPolicy("CustomPolicy", policy =>
+                {
+                    policy.AddRequirements(new CustomPolicy());
+                });
+
             });
 
             // add identity
