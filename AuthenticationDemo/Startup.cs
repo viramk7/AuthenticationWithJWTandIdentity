@@ -135,7 +135,7 @@ namespace AuthenticationDemo
             });
 
             identityBuilder = new IdentityBuilder(identityBuilder.UserType, typeof(IdentityRole), identityBuilder.Services);
-            identityBuilder.AddEntityFrameworkStores<AppIdentityDbContext>().AddDefaultTokenProviders();
+            identityBuilder.AddEntityFrameworkStores<AppIdentityDbContext>().AddRoles<IdentityRole>().AddDefaultTokenProviders();
 
             // Register the Swagger generator, defining 1 or more Swagger documents
             services.AddSwaggerGen(c =>

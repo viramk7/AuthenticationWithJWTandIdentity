@@ -15,11 +15,13 @@ namespace AuthenticationDemo.Controllers
     public class AuthController : ControllerBase
     {
         private readonly UserManager<AppUser> _userManager;
+        private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IJwtFactory _jwtFactory;
 
-        public AuthController(UserManager<AppUser> userManager, IJwtFactory jwtFactory)
+        public AuthController(UserManager<AppUser> userManager, RoleManager<IdentityRole> roleManager, IJwtFactory jwtFactory)
         {
             _userManager = userManager;
+            _roleManager = roleManager;
             _jwtFactory = jwtFactory;
         }
 
@@ -38,13 +40,18 @@ namespace AuthenticationDemo.Controllers
                 }));
             }
 
-            if(!await _userManager.CheckPasswordAsync(user, model.Password))
+            if (!await _userManager.CheckPasswordAsync(user, model.Password))
             {
                 return BadRequest(new LoginOutputDto(new[]
                 {
                     new Error("login_failure", "Invalid username or password.")
                 }));
             }
+
+            if (!await _roleManager.RoleExistsAsync("admin"))
+                await _roleManager.CreateAsync(new IdentityRole("admin"));
+
+            await _userManager.AddToRoleAsync(user, "admin");
 
             var response = new LoginOutputDto(
                 await _jwtFactory.GenerateEncodedToken(user.Id, user.UserName),

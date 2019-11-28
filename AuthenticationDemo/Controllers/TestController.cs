@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AuthenticationDemo.Controllers
@@ -12,6 +13,11 @@ namespace AuthenticationDemo.Controllers
     [ApiController]
     public class TestController : ControllerBase
     {
+        public TestController()
+        {
+
+        }
+
         [Authorize(Policy = "CustomPolicy")]
         [HttpGet]
         public IActionResult Get()
