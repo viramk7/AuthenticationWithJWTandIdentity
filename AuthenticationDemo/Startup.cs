@@ -1,21 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using AuthenticationDemo.Auth;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using NLog;
 using Swashbuckle.AspNetCore.Swagger;
 
 namespace AuthenticationDemo
@@ -24,6 +22,12 @@ namespace AuthenticationDemo
     {
         public Startup(IConfiguration configuration)
         {
+            // Don't try and load nlog config during integ tests.
+            var nLogConfigPath = string.Concat(Directory.GetCurrentDirectory(), "/nlog.config");
+            if (File.Exists(nLogConfigPath))
+            {
+                LogManager.LoadConfiguration(string.Concat(Directory.GetCurrentDirectory(), "/nlog.config"));
+            }
             Configuration = configuration;
         }
 
@@ -32,15 +36,18 @@ namespace AuthenticationDemo
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddDbContext<AppIdentityDbContext>(options => 
-                options.UseSqlServer(Configuration.GetConnectionString("Default"), 
+            services.AddTransient<IJwtFactory, JwtFactory>();
+            services.AddTransient<IJwtTokenHandler, JwtTokenHandler>();
+
+            services.AddDbContext<AppIdentityDbContext>(options =>
+                options.UseSqlServer(Configuration.GetConnectionString("Default"),
                     b => b.MigrationsAssembly("AuthenticationDemo")));
 
             // Register the ConfigurationBuilder instance of AuthSettings
             var authSettings = Configuration.GetSection(nameof(AuthSettings));
             services.Configure<AuthSettings>(authSettings);
 
-            var signingKey = 
+            var signingKey =
                 new SymmetricSecurityKey(Encoding.ASCII.GetBytes(authSettings[nameof(AuthSettings.SecretKey)]));
 
             // jwt wire up
@@ -98,9 +105,9 @@ namespace AuthenticationDemo
             // api user claim policy
             services.AddAuthorization(options =>
             {
-                options.AddPolicy("ApiUser", policy => 
+                options.AddPolicy("ApiUser", policy =>
                     policy.RequireClaim(
-                        Constants.Strings.JwtClaimIdentifiers.Rol, 
+                        Constants.Strings.JwtClaimIdentifiers.Rol,
                         Constants.Strings.JwtClaims.ApiAccess));
             });
 
@@ -156,6 +163,7 @@ namespace AuthenticationDemo
             app.UseSwaggerUI(c =>
             {
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "AspNetCoreApiStarter V1");
+                c.RoutePrefix = string.Empty;
             });
 
             // Enable middleware to serve generated Swagger as a JSON endpoint.
